@@ -8,6 +8,8 @@ import jade.core.behaviours.OneShotBehaviour
 import jade.domain.DFService
 import jade.domain.FIPAAgentManagement.DFAgentDescription
 import jade.domain.FIPAAgentManagement.ServiceDescription
+import jade.lang.acl.ACLMessage
+import jade.lang.acl.MessageTemplate
 
 fun Agent.searchAgents(service: ServiceDescription): Single<List<DFAgentDescription>> {
     return Single.fromCallable {
@@ -31,4 +33,8 @@ fun Agent.cyclic(action: () -> Unit) {
         override fun action() = action()
     }
     addBehaviour(cyclicBehaviour)
+}
+
+fun Agent.blockingReceive(type: Int): ACLMessage {
+    return blockingReceive(MessageTemplate.MatchPerformative(type))
 }

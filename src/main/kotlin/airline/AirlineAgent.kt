@@ -5,6 +5,9 @@ import jade.domain.DFService
 import jade.domain.FIPAAgentManagement.DFAgentDescription
 import jade.domain.FIPAAgentManagement.ServiceDescription
 import jade.lang.acl.ACLMessage
+import pl.sag.fromJSON
+import pl.sag.models.OfferRequest
+import pl.sag.utils.blockingReceive
 import pl.sag.utils.cyclic
 
 
@@ -24,14 +27,18 @@ class AirlineAgent : ModernAgent() {
         }
     }
 
+    private val flightsRepository = FlightsRepository()
+
     override fun onCreate(args: Array<String>) {
+        // Rejestracja usług agenta u agenta DF
         DFService.register(this, getDFAgentDescription())
 
+        // Zachowanie, które polega na przyjmowaniu zapytań o ofertę kupna biletów lotniczych
         cyclic {
-            val msg = blockingReceive()
-            msg?.also {
-                log("message: ${it.content}")
-            }
+            val offerRequestJSON = blockingReceive(ACLMessage.CFP)
+            val offerRequest = fromJSON<OfferRequest>(offerRequestJSON.content)
+
+
         }
     }
 

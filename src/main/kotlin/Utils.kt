@@ -14,3 +14,8 @@ inline fun <reified T> parseJsonFile(filename: String): T? {
         gson.fromJson(json, T::class.java)
     }
 }
+
+inline fun <reified T> fromJSON(json: String): T =
+    gson.fromJson(json, T::class.java)
+
+inline fun <reified T> toJSON(value: T) = gson.toJson(value)
