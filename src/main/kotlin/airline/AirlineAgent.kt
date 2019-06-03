@@ -37,8 +37,6 @@ class AirlineAgent : ModernAgent() {
         cyclic {
             val offerRequestJSON = blockingReceive(ACLMessage.CFP)
             val offerRequest = fromJSON<OfferRequest>(offerRequestJSON.content)
-
-
         }
     }
 
