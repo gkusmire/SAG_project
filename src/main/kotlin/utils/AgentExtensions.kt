@@ -21,13 +21,6 @@ fun Agent.searchAgents(service: ServiceDescription): Single<List<DFAgentDescript
     }.subscribeOn(Schedulers.io())
 }
 
-fun Agent.oneShot(action: () -> Unit) {
-    val oneShotBehaviour = object : OneShotBehaviour() {
-        override fun action() = action()
-    }
-    addBehaviour(oneShotBehaviour)
-}
-
 fun Agent.cyclic(action: () -> Unit) {
     val cyclicBehaviour = object : CyclicBehaviour() {
         override fun action() = action()
@@ -37,4 +30,10 @@ fun Agent.cyclic(action: () -> Unit) {
 
 fun Agent.blockingReceive(type: Int): ACLMessage {
     return blockingReceive(MessageTemplate.MatchPerformative(type))
+}
+
+fun Agent.blockingReceiveReply(request: ACLMessage): ACLMessage {
+    return blockingReceive(
+        MessageTemplate.MatchInReplyTo(request.replyWith)
+    )
 }

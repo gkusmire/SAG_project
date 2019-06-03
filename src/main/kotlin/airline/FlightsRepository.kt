@@ -7,8 +7,8 @@ import pl.sag.models.Flight
 class FlightsRepository {
     private val flights = mutableListOf<Flight>()
 
-    fun find(from: String, to: String): Flight {
-        return flights.first { it.from == from && it.to == to }
+    fun find(from: String, to: String): Flight? {
+        return flights.firstOrNull { it.from == from && it.to == to }
     }
 
 //    fun buy(buyRequest: BuyRequest): Response<BuyResponse> {

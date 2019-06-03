@@ -1,2 +1,0 @@
-package pl.sag.models
-
