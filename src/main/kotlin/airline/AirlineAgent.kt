@@ -6,10 +6,8 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription
 import jade.domain.FIPAAgentManagement.ServiceDescription
 import jade.lang.acl.ACLMessage
 import pl.sag.fromJSON
-import pl.sag.models.Flight
-import pl.sag.models.OfferRefuseResponse
-import pl.sag.models.OfferRequest
-import pl.sag.models.RefuseReason
+import pl.sag.models.*
+import pl.sag.parseJsonFile
 import pl.sag.toJSON
 import pl.sag.utils.blockingReceive
 import pl.sag.utils.cyclic
@@ -31,15 +29,14 @@ class AirlineAgent : ModernAgent() {
         }
     }
 
-    private val flightsRepository = FlightsRepository().apply {
-        addAll(listOf(
-            Flight(id = 1, from = "New York", to = "Warsaw", seatsLeft = 100, price = 1000.0f),
-            Flight(id = 2, from = "New York", to = "Washington", seatsLeft = 50, price = 200.0f),
-            Flight(id = 3, from = "Warsaw", to = "Cracow", seatsLeft = 20, price = 80.0f)
-        ))
-    }
+    private val flightsRepository = FlightsRepository()
 
     override fun onCreate(args: Array<String>) {
+        // Wczytywanie pliku wejsciowego
+        parseJsonFile<AirlineSetup>(args[0]).apply {
+            flightsRepository.addAll(flights)
+        }
+
         // Rejestracja usług agenta u agenta DF
         DFService.register(this, getDFAgentDescription())
 
@@ -55,13 +52,17 @@ class AirlineAgent : ModernAgent() {
                 if (matchedFlight != null) {
                     performative = ACLMessage.PROPOSE
                     content = toJSON(matchedFlight)
+
+                    log("send propose to: ${offerRequestMsg.sender.localName}")
                 } else {
                     performative = ACLMessage.REFUSE
                     content = toJSON(OfferRefuseResponse(RefuseReason.NO_FLIGHT_FOUND))
+
+                    log("send refuse to: ${offerRequestMsg.sender.localName}")
                 }
             }
             send(reply)
-            log("send response to: ${offerRequestMsg.sender.localName}")
+
         }
     }
 

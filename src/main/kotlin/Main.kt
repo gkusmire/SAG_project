@@ -7,7 +7,7 @@ import jade.core.Profile
 import jade.core.ProfileImpl
 import jade.core.Runtime
 import pl.sag.airline.AirlineAgent
-import pl.sag.models.Destinations
+import pl.sag.models.TestSetup
 import pl.sag.seller.SellerAgent
 
 fun main() {
@@ -17,23 +17,35 @@ fun main() {
     myProfile.setParameter(Profile.MAIN_PORT, "1099")
 
     val mainContainer = myRuntime.createMainContainer(myProfile)
-    val destinations = parseJsonFile<Destinations>("destinations.json")
-    println("main: $destinations")
+
+    val testCaseDir = "test_case_1"
+    val testSetup = parseJsonFile<TestSetup>("$testCaseDir/test_setup.json")
+
+    val airlinesNumber = testSetup.airlines
+    val sellersNumber = testSetup.sellers
 
     mainContainer.apply {
         addRmaAgent()
 
-        for (i in 1..4) {
+        println("Creating $airlinesNumber AirlineAgent(s)")
+        val airlineAgents = (1..airlinesNumber).map {
             createNewAgent(
                 agentClass = AirlineAgent::class,
-                nickname = "airline#$i",
-                args = destinations?.destinations?.toTypedArray()
-            ).run()
+                nickname = "airline#$it",
+                args = arrayOf("$testCaseDir/airline_$it.json")
+            )
         }
-        createNewAgent(
-            agentClass = SellerAgent::class,
-            nickname = "seller",
-            args = destinations?.destinations?.toTypedArray()
-        ).run()
+
+        println("Creating $sellersNumber SellerAgent(s)")
+        val sellerAgents = (1..sellersNumber).map {
+            createNewAgent(
+                agentClass = SellerAgent::class,
+                nickname = "seller",
+                args = arrayOf("$testCaseDir/seller_$it.json")
+            )
+        }
+
+        println("Starting agents...")
+        (airlineAgents + sellerAgents).forEach { it.run() }
     }
 }
