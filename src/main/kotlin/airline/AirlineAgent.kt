@@ -40,29 +40,56 @@ class AirlineAgent : ModernAgent() {
         // Rejestracja usług agenta u agenta DF
         DFService.register(this, getDFAgentDescription())
 
-        // Zachowanie, które polega na przyjmowaniu zapytań o ofertę kupna biletów lotniczych
+        // Cykliczna obsługa requestów
         cyclic {
             val offerRequestMsg = blockingReceive(ACLMessage.CFP)
-            val offerRequest = fromJSON<OfferRequest>(offerRequestMsg.content)
-            log("request from: ${offerRequestMsg.sender.localName}, content = $offerRequest")
 
-            val matchedFlight = flightsRepository.find(offerRequest.from, offerRequest.to)
+            // Pierwszy typ requestu - zapytanie o dostępną ofertę linii lotniczbych
+            if(offerRequestMsg.replyWith.contains("OfferRequest")) {
 
-            val reply = offerRequestMsg.createReply().apply {
-                if (matchedFlight != null) {
-                    performative = ACLMessage.PROPOSE
-                    content = toJSON(matchedFlight)
+                val offerRequest = fromJSON<OfferRequest>(offerRequestMsg.content)
+                log("Offer request: ${offerRequestMsg.sender.localName}, content = $offerRequest")
 
-                    log("send propose to: ${offerRequestMsg.sender.localName}")
-                } else {
-                    performative = ACLMessage.REFUSE
-                    content = toJSON(OfferRefuseResponse(RefuseReason.NO_FLIGHT_FOUND))
+                val matchedFlight = flightsRepository.find(offerRequest.from, offerRequest.to)
 
-                    log("send refuse to: ${offerRequestMsg.sender.localName}")
+                val reply = offerRequestMsg.createReply().apply {
+                    if (matchedFlight != null) {
+                        performative = ACLMessage.PROPOSE
+                        content = toJSON(matchedFlight)
+
+                        log("send propose to: ${offerRequestMsg.sender.localName}")
+                    } else {
+                        performative = ACLMessage.REFUSE
+                        content = toJSON(OfferRefuseResponse(RefuseReason.NO_FLIGHT_FOUND))
+
+                        log("send refuse to: ${offerRequestMsg.sender.localName}")
+                    }
                 }
+                send(reply)
             }
-            send(reply)
+            // Drugi typ requestu - żądanie rezerwacji biletu
+            else {
+                val offerRequest = fromJSON<BuyRequest>(offerRequestMsg.content)
+                log("Buy request: ${offerRequestMsg.sender.localName}, content = $offerRequest")
 
+                val ticketsPrice = flightsRepository.reserveTickets(offerRequest.flightId, offerRequest.seatsCount)
+
+                val reply = offerRequestMsg.createReply().apply {
+                    if (ticketsPrice != 0) {    //tickets reserved
+                        performative = ACLMessage.PROPOSE
+                        content = toJSON(BuyResponse(flightId = offerRequest.flightId, price = ticketsPrice,
+                            seatsLeft = flightsRepository.getSetsLeft(offerRequest.flightId)))
+
+                        log("send propose to: ${offerRequestMsg.sender.localName}")
+                    } else {
+                        performative = ACLMessage.REFUSE
+                        content = toJSON(OfferRefuseResponse(RefuseReason.NO_FLIGHT_FOUND))
+
+                        log("send buy ticket refuse to: ${offerRequestMsg.sender.localName}")
+                    }
+                }
+                send(reply)
+            }
         }
     }
 

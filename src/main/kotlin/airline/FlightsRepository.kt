@@ -30,4 +30,15 @@ class FlightsRepository {
     fun addAll(flights: List<Flight>) = this.flights.addAll(flights)
 
     private fun findById(id: Int) = flights.first { it.id == id }
+    
+    fun reserveTickets(flightId: Int, seatsCount: Int): Int {
+        //TODO Reserve ticket
+        
+        return 3; //return reserved price tickets
+    }
+
+    //TODO
+    fun getSetsLeft(flightId: Int): Int {
+        return 0;
+    }
 }
