@@ -14,7 +14,9 @@ import jade.lang.acl.ACLMessage
 import jade.lang.acl.MessageTemplate
 import pl.sag.Stats
 import pl.sag.airline.AirlineAgent
+import pl.sag.airline.asSuccessResponse
 import pl.sag.fromJSON
+import pl.sag.models.BuyRequest
 import pl.sag.models.Flight
 import pl.sag.models.OfferRequest
 import pl.sag.models.SellerSetup
@@ -77,14 +79,35 @@ class SellerAgent : ModernAgent() {
                     // wybór najlepszej oferty (na podstawie ceny)
                     val bestOffer = proposedOffers.minBy { it.value.price }?.toPair()
 
-                    bestOffer?.let {
-                        log("Best offer from ${it.first.localName} = ${it.second}")
+                    if(bestOffer == null) {
+                        log("No offer for {from= ${setup.from}, to=${setup.to}")
+                    } else {
+
+                        val buyRequest: ACLMessage = ACLMessage(ACLMessage.ACCEPT_PROPOSAL).apply {
+                            addReceiver(bestOffer!!.first)
+                            replyWith = "BuyRequest-${System.currentTimeMillis()}"
+                            content = toJSON(BuyRequest(flightId = (bestOffer.second.id), seatsCount = 33))
+                        }
+
+
+                        send(buyRequest)
                     }
                 })
 
-
                 addSubBehaviour(oneShot {
+                    var isTicketBought: Boolean = false
 
+                    while(!isTicketBought && proposedOffers.isNotEmpty()) {
+
+                        // wybór najlepszej oferty (na podstawie ceny)
+                        val bestOffer = proposedOffers.minBy { it.value.price }?.toPair()
+
+
+
+
+
+                        proposedOffers.remove(bestOffer!!.first)
+                    }
                 })
 
             }
