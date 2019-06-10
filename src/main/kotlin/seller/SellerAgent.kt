@@ -4,6 +4,7 @@ import io.reactivex.Single
 import io.reactivex.rxkotlin.subscribeBy
 import it.lamba.agents.ModernAgent
 import jade.core.AID
+import jade.core.behaviours.Behaviour
 import jade.core.behaviours.OneShotBehaviour
 import jade.core.behaviours.SequentialBehaviour
 import jade.domain.DFService
@@ -11,6 +12,7 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription
 import jade.domain.FIPAAgentManagement.ServiceDescription
 import jade.lang.acl.ACLMessage
 import jade.lang.acl.MessageTemplate
+import pl.sag.Stats
 import pl.sag.airline.AirlineAgent
 import pl.sag.fromJSON
 import pl.sag.models.Flight
@@ -46,6 +48,8 @@ class SellerAgent : ModernAgent() {
                 // wyslanie requesta
                 addSubBehaviour(oneShot {
                     send(request)
+
+                    log("${Stats.INSTANCE}")
                 })
 
                 // odebranie odpowiedzi do zapytania o oferte od linii lotniczych
@@ -67,6 +71,8 @@ class SellerAgent : ModernAgent() {
                         .filter { it.performative == ACLMessage.PROPOSE }
                         .groupBy { it.sender }
                         .mapValues { fromJSON<Flight>(it.value.first().content) }
+
+                    proposedOffers.toSortedMap()
 
                     // wybór najlepszej oferty (na podstawie ceny)
                     val bestOffer = proposedOffers.minBy { it.value.price }?.toPair()
@@ -98,6 +104,30 @@ class SellerAgent : ModernAgent() {
         }
 
         return searchAgents(searchedServiceDescription)
+    }
+
+    private class BuyBehaviour(private val offers: Map<AID, Flight>) : Behaviour() {
+        private var state: State = State.REQUEST_BUY
+
+        override fun action() {
+            when (state) {
+                State.REQUEST_BUY -> {
+                    if (offers.isEmpty()) {
+                        state = State.FINISHED
+                        (agent as ModernAgent).log("FINISHED")
+                    } else {
+                        val offer = offers
+                    }
+                }
+            }
+        }
+
+        override fun done() = state == State.FINISHED
+
+        enum class State {
+            REQUEST_BUY, RESPONSE_BUY, FINISHED
+        }
+
     }
 
 }
