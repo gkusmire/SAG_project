@@ -5,11 +5,11 @@ import jade.domain.DFService
 import jade.domain.FIPAAgentManagement.DFAgentDescription
 import jade.domain.FIPAAgentManagement.ServiceDescription
 import jade.lang.acl.ACLMessage
+import jade.lang.acl.MessageTemplate
 import pl.sag.fromJSON
 import pl.sag.models.*
 import pl.sag.parseJsonFile
 import pl.sag.toJSON
-import pl.sag.utils.blockingReceive
 import pl.sag.utils.cyclic
 
 
@@ -40,52 +40,56 @@ class AirlineAgent : ModernAgent() {
         // Rejestracja usług agenta u agenta DF
         DFService.register(this, getDFAgentDescription())
 
-        // Cykliczna obsługa requestów
+        // Drugi typ requestu - żądanie rezerwacji biletu
         cyclic {
-            val offerRequestMsg = blockingReceive(ACLMessage.CFP)
+            receive(MessageTemplate.MatchPerformative(ACLMessage.ACCEPT_PROPOSAL))?.let {
+                val buyRequest = fromJSON<BuyRequest>(it.content)
+                log("Buy request: ${it.sender.localName}, content = $buyRequest")
 
-            // Pierwszy typ requestu - zapytanie o dostępną ofertę linii lotniczbych
-            if(offerRequestMsg.replyWith.contains("OfferRequest")) {
+                val ticketsPrice = flightsRepository.reserveTickets(buyRequest.flightId, buyRequest.seatsCount)
 
-                val offerRequest = fromJSON<OfferRequest>(offerRequestMsg.content)
-                log("Offer request: ${offerRequestMsg.sender.localName}, content = $offerRequest")
-
-                val matchedFlight = flightsRepository.find(offerRequest.from, offerRequest.to)
-
-                val reply = offerRequestMsg.createReply().apply {
-                    if (matchedFlight != null) {
+                val reply = it.createReply().apply {
+                    if (ticketsPrice != 0) {    //tickets reserved
                         performative = ACLMessage.PROPOSE
-                        content = toJSON(matchedFlight)
+                        content = toJSON(
+                            BuyResponse(
+                                flightId = buyRequest.flightId, price = ticketsPrice,
+                                seatsLeft = flightsRepository.getSetsLeft(buyRequest.flightId)
+                            )
+                        )
 
-                        log("send propose to: ${offerRequestMsg.sender.localName}")
+                        log("send propose to: ${it.sender.localName}")
                     } else {
                         performative = ACLMessage.REFUSE
                         content = toJSON(OfferRefuseResponse(RefuseReason.NO_FLIGHT_FOUND))
 
-                        log("send refuse to: ${offerRequestMsg.sender.localName}")
+                        log("send buy ticket refuse to: ${it.sender.localName}")
                     }
                 }
                 send(reply)
             }
-            // Drugi typ requestu - żądanie rezerwacji biletu
-            else {
-                val offerRequest = fromJSON<BuyRequest>(offerRequestMsg.content)
-                log("Buy request: ${offerRequestMsg.sender.localName}, content = $offerRequest")
 
-                val ticketsPrice = flightsRepository.reserveTickets(offerRequest.flightId, offerRequest.seatsCount)
+        }
 
-                val reply = offerRequestMsg.createReply().apply {
-                    if (ticketsPrice != 0) {    //tickets reserved
+        // Cykliczna obsługa requestów
+        cyclic {
+            receive(MessageTemplate.MatchPerformative(ACLMessage.CFP))?.let {
+                val offerRequest = fromJSON<OfferRequest>(it.content)
+                log("Offer request: ${it.sender.localName}, content = $offerRequest")
+
+                val matchedFlight = flightsRepository.find(offerRequest.from, offerRequest.to)
+
+                val reply = it.createReply().apply {
+                    if (matchedFlight != null) {
                         performative = ACLMessage.PROPOSE
-                        content = toJSON(BuyResponse(flightId = offerRequest.flightId, price = ticketsPrice,
-                            seatsLeft = flightsRepository.getSetsLeft(offerRequest.flightId)))
+                        content = toJSON(matchedFlight)
 
-                        log("send propose to: ${offerRequestMsg.sender.localName}")
+                        log("send propose to: ${it.sender.localName}")
                     } else {
                         performative = ACLMessage.REFUSE
                         content = toJSON(OfferRefuseResponse(RefuseReason.NO_FLIGHT_FOUND))
 
-                        log("send buy ticket refuse to: ${offerRequestMsg.sender.localName}")
+                        log("send refuse to: ${it.sender.localName}")
                     }
                 }
                 send(reply)
