@@ -50,7 +50,7 @@ class AirlineAgent : ModernAgent() {
 
                 val reply = it.createReply().apply {
                     if (ticketsPrice != 0) {    //tickets reserved
-                        performative = ACLMessage.PROPOSE
+                        performative = ACLMessage.INFORM
                         content = toJSON(
                             BuyResponse(
                                 flightId = buyRequest.flightId, price = ticketsPrice,
