@@ -3,7 +3,6 @@ package pl.sag.seller
 import io.reactivex.Single
 import io.reactivex.rxkotlin.subscribeBy
 import it.lamba.agents.ModernAgent
-import jade.core.AID
 import jade.core.Agent
 import jade.core.behaviours.Behaviour
 import jade.core.behaviours.SequentialBehaviour
@@ -20,15 +19,8 @@ import pl.sag.utils.searchAgents
 
 class SellerAgent : ModernAgent() {
 
-    private val proposeReplies = mutableListOf<ACLMessage>()
-
-    private val proposedOffers = mutableMapOf<AID, Flight>()
-
-    private var bestOffer: Pair<AID, Flight>? = null
-
     override fun onCreate(args: Array<String>) {
 
-        //TODO pobiera następne zlecenie na zakup biletów
         val setup = parseJsonFile<SellerSetup>(args[0])
 
         addBehaviour(SequentialBehaviour().apply {
@@ -43,14 +35,6 @@ class SellerAgent : ModernAgent() {
 
     override fun onMessageReceived(message: ACLMessage) {
         log("onMessageReceived: $message")
-    }
-
-    private fun Agent.searchAirlineAgents(): Single<List<DFAgentDescription>> {
-        val searchedServiceDescription = ServiceDescription().apply {
-            type = AirlineAgent.SERVICE_TYPE
-        }
-
-        return searchAgents(searchedServiceDescription)
     }
 
     private class BuyTicketsBehaviour(private val task: SellerTask) : Behaviour() {
