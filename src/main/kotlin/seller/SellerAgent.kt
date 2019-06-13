@@ -4,19 +4,13 @@ import io.reactivex.Single
 import io.reactivex.rxkotlin.subscribeBy
 import it.lamba.agents.ModernAgent
 import jade.core.AID
+import jade.core.Agent
 import jade.core.behaviours.Behaviour
-import jade.core.behaviours.OneShotBehaviour
-import jade.core.behaviours.SequentialBehaviour
-import jade.domain.DFService
 import jade.domain.FIPAAgentManagement.DFAgentDescription
 import jade.domain.FIPAAgentManagement.ServiceDescription
 import jade.lang.acl.ACLMessage
 import jade.lang.acl.MessageTemplate
-import jade.lang.acl.MessageTemplate.MatchReplyTo
-import jade.lang.acl.MessageTemplate.and
-import pl.sag.Stats
 import pl.sag.airline.AirlineAgent
-import pl.sag.airline.asSuccessResponse
 import pl.sag.fromJSON
 import pl.sag.models.BuyRequest
 import pl.sag.models.Flight
@@ -24,10 +18,7 @@ import pl.sag.models.OfferRequest
 import pl.sag.models.SellerSetup
 import pl.sag.parseJsonFile
 import pl.sag.toJSON
-import pl.sag.utils.blockingReceiveReply
-import pl.sag.utils.oneShot
 import pl.sag.utils.searchAgents
-import kotlin.system.measureTimeMillis
 
 class SellerAgent : ModernAgent() {
 
@@ -50,7 +41,7 @@ class SellerAgent : ModernAgent() {
         var airLineAgentsDesc = searchAirlineAgents()
 
         // tworzy nowy Behaviour, dzięki któremu będzie zakupiony bilets
-        addBehaviour(BuyTicketsBehaviour(setup, airLineAgentsDesc, this))
+        addBehaviour(BuyTicketsBehaviour(setup))
   //  }
 
 //
@@ -137,7 +128,7 @@ class SellerAgent : ModernAgent() {
         log("onMessageReceived: $message")
     }
 
-    private fun searchAirlineAgents(): Single<List<DFAgentDescription>> {
+    private fun Agent.searchAirlineAgents(): Single<List<DFAgentDescription>> {
         val searchedServiceDescription = ServiceDescription().apply {
             type = AirlineAgent.SERVICE_TYPE
         }
@@ -145,36 +136,45 @@ class SellerAgent : ModernAgent() {
         return searchAgents(searchedServiceDescription)
     }
 
-    private class BuyTicketsBehaviour(setup: SellerSetup, airlineAgentsDesc: Single<List<DFAgentDescription>>, sellerAgent: SellerAgent) : Behaviour() {
+    private class BuyTicketsBehaviour(private val setup: SellerSetup) : Behaviour() {
         private var state: State = State.REQUEST_OFFER_TO_SEND
-        private var messageID = "Offer request-${System.currentTimeMillis()}"
-        private val ticketParam: SellerSetup = setup
-        private val agents: Single<List<DFAgentDescription>> = airlineAgentsDesc
+        private val messageID = "Offer request-${System.currentTimeMillis()}"
         private var message = ACLMessage(ACLMessage.CFP)
         private val ticketConversationId = "ticket_buying"
-        private val agent: SellerAgent = sellerAgent
         private var messageTemplate: MessageTemplate? = null
         private var startTime = System.currentTimeMillis()
         private val timeout = 5000
         private val receivedMessages = mutableListOf<ACLMessage>()
 
+        private fun Agent.searchAirlineAgents(): Single<List<DFAgentDescription>> {
+            val searchedServiceDescription = ServiceDescription().apply {
+                type = AirlineAgent.SERVICE_TYPE
+            }
+
+            return searchAgents(searchedServiceDescription)
+        }
+
+        private fun Agent.log(msg: String) {
+            (this as ModernAgent).log(msg)
+        }
+
         override fun action() {
             when (state) {
                 // rozsyła zapytanie ofertowe do linii lotniczych
                 State.REQUEST_OFFER_TO_SEND -> {
-                    agents.subscribeBy {
+                    myAgent.searchAirlineAgents().subscribeBy {
                         message.apply {
                             it.forEach { addReceiver(it.name)}
-                            content = toJSON(OfferRequest(from = ticketParam.from, to = ticketParam.to))
+                            content = toJSON(OfferRequest(from = setup.from, to = setup.to))
                             replyWith = messageID
                             conversationId = ticketConversationId
                         }
-                        agent.send(message)
+                        myAgent.send(message)
                     }
                     messageTemplate = MessageTemplate.MatchConversationId(ticketConversationId)
 
                     state = State.RESPONSE_OFFER_RECEIVE
-                    agent.log("sending offer request (from=${ticketParam.from}, to=${ticketParam.to})")
+                    myAgent.log("sending offer request (from=${setup.from}, to=${setup.to})")
                 }
                 // odbiera zapytania ofertowe
                 State.RESPONSE_OFFER_RECEIVE -> {
@@ -182,7 +182,7 @@ class SellerAgent : ModernAgent() {
                     if (startTime + timeout >= System.currentTimeMillis()) {
                         val msg = agent.receive(messageTemplate)
                         msg?.let { receivedMessages.add(msg)
-                            agent.log("receive offer response from ${msg.sender.localName} (${msg.content})") }
+                            myAgent.log("receive offer response from ${msg.sender.localName} (${msg.content})") }
 
                         if(receivedMessages.size == 1) {    //TODO liczba agentów
                             // wszyscy agenci odpowiedzieli
@@ -200,7 +200,7 @@ class SellerAgent : ModernAgent() {
                 }
                 State.REQUEST_BUY_TO_SEND -> {
                     if(receivedMessages.size == 0) {
-                        agent.log("${agent.localName}: No tickets to buy for param (from=${ticketParam.from}, to=$ticketParam.to)")
+                        myAgent.log("${myAgent.localName}: No tickets to buy for param (from=${setup.from}, to=$setup.to)")
                         state = State.FINISHED
                     }
                     val bestOffer = receivedMessages.minBy { fromJSON<Flight>(it.content).price }
@@ -208,26 +208,26 @@ class SellerAgent : ModernAgent() {
 
                     message = ACLMessage(ACLMessage.ACCEPT_PROPOSAL).apply {
                         addReceiver(bestOffer!!.sender)
-                        content = toJSON(BuyRequest(flightId = fromJSON<Flight>(bestOffer.content).id, seatsCount = ticketParam.amount))
+                        content = toJSON(BuyRequest(flightId = fromJSON<Flight>(bestOffer.content).id, seatsCount = setup.amount))
                         conversationId = ticketConversationId
                         replyWith = messageID
                     }
                     messageTemplate = MessageTemplate.MatchConversationId(ticketConversationId)
-                    agent.log("Send request of buying tickets to ${bestOffer!!.sender.localName}")
-                    agent.send(message)
+                    myAgent.log("Send request of buying tickets to ${bestOffer!!.sender.localName}")
+                    myAgent.send(message)
                     state = State.RESPONSE_BUY_RECEIVE
                 }
                 State.RESPONSE_BUY_RECEIVE -> {
-                    val msg = agent.receive(messageTemplate)
+                    val msg = myAgent.receive(messageTemplate)
                     msg?.let {
                         //if(it.performative == null) block()
                         if(it.performative == ACLMessage.INFORM) {
-                            agent.log("Accept of buying ticket from ${msg.sender.localName} (from=${ticketParam.from}, to=${ticketParam.to})")
+                            myAgent.log("Accept of buying ticket from ${msg.sender.localName} (from=${setup.from}, to=${setup.to})")
                             state = State.FINISHED
                         }
                         else {
                             // wybieramy następną najlepszą ofertę
-                            agent.log("Airline ${msg.sender.localName} refuse offert of buying tickets")
+                            myAgent.log("Airline ${msg.sender.localName} refuse offert of buying tickets")
                             state = State.REQUEST_BUY_TO_SEND
                         }
                     }
