@@ -35,7 +35,7 @@ class Stats private constructor() {
 
     }
 
-    fun onBuyRequest(seller: Agent, airline: Agent, buyRequest: BuyRequest) {
+    fun onBuyRequest(buyRequest: BuyRequest) {
         ticketsStats[buyRequest.flightId] = ticketsStats[buyRequest.flightId].let {
             return@let if (it == null) {
                 TicketsStats(wantedToBuy = 1, actuallyBought = 0, buyRefused = 0)
@@ -45,7 +45,7 @@ class Stats private constructor() {
         }
     }
 
-    fun onBuyResponseSuccess(airline: Agent, seller: Agent, buySuccess: BuyResponseSuccess) {
+    fun onBuyResponseSuccess(buySuccess: BuyResponseSuccess) {
         ticketsStats[buySuccess.flightId] = ticketsStats[buySuccess.flightId].let {
             return@let if (it == null) {
                 TicketsStats(wantedToBuy = 0, actuallyBought = 1, buyRefused = 0)
@@ -55,7 +55,7 @@ class Stats private constructor() {
         }
     }
 
-    fun onBuyResponseFailure(airline: Agent, seller: Agent, buyRefuse: BuyResponseRefuse) {
+    fun onBuyResponseFailure(buyRefuse: BuyResponseRefuse) {
         ticketsStats[buyRefuse.flightId] = ticketsStats[buyRefuse.flightId].let {
             return@let if (it == null) {
                 TicketsStats(wantedToBuy = 0, actuallyBought = 0, buyRefused = 1)

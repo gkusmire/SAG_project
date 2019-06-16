@@ -5,7 +5,7 @@ import java.io.File
 import java.nio.file.Files
 
 val gson = GsonBuilder()
-    .setDateFormat("yyyy-MM-dd hh:mm")
+    .setDateFormat("yyyy-MM-dd HH:mm")
     .create()
 
 inline fun <reified T> parseJsonFile(filename: String): T {

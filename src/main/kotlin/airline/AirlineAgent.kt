@@ -95,7 +95,12 @@ class AirlineAgent : ModernAgent() {
                 val offerRequest = fromJSON<OfferRequest>(it.content)
                 log("Offer request: ${it.sender.localName}, content = $offerRequest")
 
-                val matchedFlight = flightsRepository.find(offerRequest.from, offerRequest.to)
+                val matchedFlight = flightsRepository.find(
+                    offerRequest.from,
+                    offerRequest.to,
+                    offerRequest.fromDate,
+                    offerRequest.toDate
+                )
 
                 val reply = it.createReply().apply {
                     if (matchedFlight != null) {

@@ -70,7 +70,7 @@ class SellerAgent : ModernAgent() {
                         numberOfAirlinesAgents = it.size
                         message.apply {
                             it.forEach { addReceiver(it.name)}
-                            content = toJSON(OfferRequest(from = task.from, to = task.to))
+                            content = toJSON(OfferRequest(from = task.from, to = task.to, fromDate = task.dateFrom, toDate = task.dateTo))
                             replyWith = messageID
                             conversationId = ticketConversationId
                         }
@@ -132,15 +132,17 @@ class SellerAgent : ModernAgent() {
                 State.RESPONSE_BUY_RECEIVE -> {
                     val msg = myAgent.receive(messageTemplate)
                     msg?.let {
-                        if (it.performative == ACLMessage.AGREE) {
+                        state = if (it.performative == ACLMessage.AGREE) {
                             myAgent.log("Accept of buying ticket from ${msg.sender.localName} (from=${task.from}, to=${task.to})")
-                            State.FINISHED
                             Stats.INSTANCE.onBuyResponseSuccess(buySuccess = fromJSON(it.content))
+
+                            State.FINISHED
                         } else {
                             // wybieramy następną najlepszą ofertę
                             myAgent.log("Airline ${msg.sender.localName} refuse offert of buying tickets")
-                            State.REQUEST_BUY_TO_SEND
                             Stats.INSTANCE.onBuyResponseFailure(buyRefuse = fromJSON(it.content))
+
+                            State.REQUEST_BUY_TO_SEND
                         }
                     }
                 }
