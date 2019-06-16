@@ -10,6 +10,7 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription
 import jade.domain.FIPAAgentManagement.ServiceDescription
 import jade.lang.acl.ACLMessage
 import jade.lang.acl.MessageTemplate
+import pl.sag.Stats
 import pl.sag.airline.AirlineAgent
 import pl.sag.fromJSON
 import pl.sag.models.*
@@ -20,6 +21,7 @@ import pl.sag.utils.searchAgents
 class SellerAgent : ModernAgent() {
 
     override fun onCreate(args: Array<String>) {
+        Stats.INSTANCE.registerSeller(this)
 
         val setup = parseJsonFile<SellerSetup>(args[0])
 
@@ -122,14 +124,13 @@ class SellerAgent : ModernAgent() {
                     val msg = myAgent.receive(messageTemplate)
                     msg?.let {
                         //if(it.performative == null) block()
-                        if(it.performative == ACLMessage.INFORM) {
+                        state = if (it.performative == ACLMessage.INFORM) {
                             myAgent.log("Accept of buying ticket from ${msg.sender.localName} (from=${task.from}, to=${task.to})")
-                            state = State.FINISHED
-                        }
-                        else {
+                            State.FINISHED
+                        } else {
                             // wybieramy następną najlepszą ofertę
                             myAgent.log("Airline ${msg.sender.localName} refuse offert of buying tickets")
-                            state = State.REQUEST_BUY_TO_SEND
+                            State.REQUEST_BUY_TO_SEND
                         }
                     }
                 }
