@@ -99,8 +99,7 @@ class SellerAgent : ModernAgent() {
                 }
                 // odbiera zapytania ofertowe
                 State.RESPONSE_OFFER_RECEIVE -> {
-                    // jeśli czas nie zosał przekroczony
-//                    if (startTime + timeout >= System.currentTimeMillis()) {
+                    // czekamy na odpowiedzi od wszystkich agentów
                         val msg = agent.receive(messageTemplate)
                         msg?.let {
                             receivedMessages.add(msg)
@@ -113,12 +112,6 @@ class SellerAgent : ModernAgent() {
                                 state = State.REQUEST_BUY_TO_SEND
                             }
                         }
-//                    } else {
-//                         Timeout
-//                        receivedMessages
-//                            .filter { it.performative == ACLMessage.PROPOSE }
-//                        state = State.REQUEST_BUY_TO_SEND
-//                    }
                 }
                 State.REQUEST_BUY_TO_SEND -> {
                     if (receivedMessages.size == 0) {
@@ -141,15 +134,10 @@ class SellerAgent : ModernAgent() {
                             messageTemplate = MessageTemplate.MatchConversationId(ticketConversationId)
                             myAgent.log("Send request of buying tickets to ${sender.localName}")
 
-//                            Stats.INSTANCE.onBuyRequest(request)
 
                             myAgent.send(message)
                             state = State.RESPONSE_BUY_RECEIVE
                         }
-
-
-
-
 
                     }
                 }
