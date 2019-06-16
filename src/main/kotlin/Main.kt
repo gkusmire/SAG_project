@@ -35,6 +35,8 @@ fun main() {
                 nickname = "airline#$it",
                 args = arrayOf("$testCaseDir/airline_$it.json")
             )
+        }.forEach {
+            it.run()
         }
 
         println("Creating $sellersNumber SellerAgent(s)")
@@ -48,12 +50,13 @@ fun main() {
         val sellerAgents = (1..sellersNumber).map {
             createNewAgent(
                 agentClass = SellerAgent::class,
-                nickname = "seller",
+                nickname = "seller#$it",
                 args = arrayOf("$testCaseDir/seller_$it.json")
             )
+        }.forEach {
+            it.run()
         }
 
         println("Starting agents...")
-        (airlineAgents + sellerAgents).forEach { it.run() }
     }
 }

@@ -1,0 +1,20 @@
+{
+  "flights": [
+    {
+      "id": 3,
+      "from": "Warsaw",
+      "to": "New York",
+      "date": "2019-06-03 00:00",
+      "seatsLeft": 200,
+      "price": 50.0
+    },
+    {
+      "id": 4,
+      "from": "Prague",
+      "to": "Budapest",
+      "date": "2019-06-03 00:00",
+      "seatsLeft": 100,
+      "price": 150.0
+    }
+  ]
+}

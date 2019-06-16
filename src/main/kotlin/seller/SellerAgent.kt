@@ -78,8 +78,15 @@ class SellerAgent : ModernAgent() {
                     myAgent.searchAirlineAgents().subscribeBy {
                         numberOfAirlinesAgents = it.size
                         message.apply {
-                            it.forEach { addReceiver(it.name)}
-                            content = toJSON(OfferRequest(from = task.from, to = task.to, fromDate = task.dateFrom, toDate = task.dateTo))
+                            it.forEach { addReceiver(it.name) }
+                            content = toJSON(
+                                OfferRequest(
+                                    from = task.from,
+                                    to = task.to,
+                                    fromDate = task.dateFrom,
+                                    toDate = task.dateTo
+                                )
+                            )
                             replyWith = messageID
                             conversationId = ticketConversationId
                         }
@@ -114,11 +121,10 @@ class SellerAgent : ModernAgent() {
                     }
                 }
                 State.REQUEST_BUY_TO_SEND -> {
-                    if(receivedMessages.size == 0) {
+                    if (receivedMessages.size == 0) {
                         myAgent.log("${myAgent.localName}: No tickets to buy for param (from=${task.from}, to=$task.to)")
                         state = State.FINISHED
-                    }
-                    else {
+                    } else {
                         val bestOffer = receivedMessages.minBy { fromJSON<Flight>(it.content).price }
                         receivedMessages.remove(bestOffer)
 
@@ -141,17 +147,19 @@ class SellerAgent : ModernAgent() {
                 State.RESPONSE_BUY_RECEIVE -> {
                     val msg = myAgent.receive(messageTemplate)
                     msg?.let {
-                        state = if (it.performative == ACLMessage.AGREE) {
+                        if (it.performative == ACLMessage.AGREE) {
                             myAgent.log("Accept of buying ticket from ${msg.sender.localName} (from=${task.from}, to=${task.to})")
                             Stats.INSTANCE.onBuyResponseSuccess(buySuccess = fromJSON(it.content))
 
-                            State.FINISHED
+                            state = State.FINISHED
                         } else {
-                            // wybieramy następną najlepszą ofertę
-                            myAgent.log("Airline ${msg.sender.localName} refuse offert of buying tickets")
-                            Stats.INSTANCE.onBuyResponseFailure(buyRefuse = fromJSON(it.content))
+                            if (it.performative == ACLMessage.FAILURE) {
+                                // wybieramy następną najlepszą ofertę
+                                myAgent.log("Airline ${msg.sender.localName} refuse offert of buying tickets")
+                                Stats.INSTANCE.onBuyResponseFailure(buyRefuse = fromJSON(it.content))
 
-                            State.REQUEST_BUY_TO_SEND
+                                state = State.REQUEST_BUY_TO_SEND
+                            }
                         }
                     }
                 }

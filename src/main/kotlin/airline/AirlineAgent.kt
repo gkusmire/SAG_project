@@ -48,6 +48,7 @@ class AirlineAgent : ModernAgent() {
             receive(MessageTemplate.MatchPerformative(ACLMessage.ACCEPT_PROPOSAL))?.let {
                 val buyRequest = fromJSON<BuyRequest>(it.content)
                 log("Buy request: ${it.sender.localName}, content = $buyRequest")
+                Stats.INSTANCE.onBuyRequest(buyRequest = buyRequest)
 
                 val flight = flightsRepository.findById(buyRequest.flightId)
 
@@ -62,7 +63,6 @@ class AirlineAgent : ModernAgent() {
                                     flightId = buyRequest.flightId
                                 )
                             )
-                            Stats.INSTANCE.onBuyRequest(buyRequest = buyRequest)
 
                         } else {
                             performative = ACLMessage.FAILURE

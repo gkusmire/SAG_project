@@ -66,7 +66,8 @@ class Stats private constructor() {
     }
 
     fun printStats() {
-        println("printStats")
+        println("=====Stats=====")
+        println(ticketsStats)
     }
 
 }
