@@ -1,12 +1,16 @@
 package pl.sag.airline
 
 import pl.sag.models.Flight
+import java.util.*
 
 class FlightsRepository {
     private val flights = mutableListOf<Flight>()
 
-    fun find(from: String, to: String): Flight? {
-        return flights.firstOrNull { it.from == from && it.to == to }
+    fun find(from: String, to: String, fromDate: Date, toDate: Date): Flight? {
+        return flights.firstOrNull {
+            it.from == from && it.to == to &&
+                    ((it.date == fromDate || it.date.after(fromDate)) && (it.date == toDate) || it.date.before(toDate))
+        }
     }
 
     fun addAll(flights: List<Flight>) = this.flights.addAll(flights)
