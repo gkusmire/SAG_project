@@ -5,6 +5,7 @@ import pl.sag.models.BuyRequest
 import pl.sag.models.BuyResponseRefuse
 import pl.sag.models.BuyResponseSuccess
 import pl.sag.models.OfferRequest
+import java.util.*
 
 
 class Stats private constructor() {
@@ -12,7 +13,7 @@ class Stats private constructor() {
         val INSTANCE by lazy { Stats() }
     }
 
-    val ticketsStats = mutableMapOf<Int, TicketsStats>()
+    val ticketsStats = Collections.synchronizedMap(mutableMapOf<Int, TicketsStats>())
 
     var statsState = StatsState(
         sellerAgentCount = 0,

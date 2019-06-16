@@ -48,7 +48,7 @@ class AirlineAgent : ModernAgent() {
             receive(MessageTemplate.MatchPerformative(ACLMessage.ACCEPT_PROPOSAL))?.let {
                 val buyRequest = fromJSON<BuyRequest>(it.content)
                 log("Buy request: ${it.sender.localName}, content = $buyRequest")
-                Stats.INSTANCE.onBuyRequest(buyRequest = buyRequest)
+                Stats.INSTANCE.onBuyRequest(buyRequest)
 
                 val flight = flightsRepository.findById(buyRequest.flightId)
 
