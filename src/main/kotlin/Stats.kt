@@ -65,6 +65,10 @@ class Stats private constructor() {
         }
     }
 
+    fun printStats() {
+        println("printStats")
+    }
+
 }
 
 data class StatsState(

@@ -9,6 +9,7 @@ import jade.core.Runtime
 import pl.sag.airline.AirlineAgent
 import pl.sag.models.TestSetup
 import pl.sag.seller.SellerAgent
+import pl.sag.seller.SellersSupervisorAgent
 
 fun main() {
     val myRuntime = Runtime.instance()
@@ -37,6 +38,13 @@ fun main() {
         }
 
         println("Creating $sellersNumber SellerAgent(s)")
+
+        createNewAgent(
+            agentClass = SellersSupervisorAgent::class,
+            nickname = "sellers-supervisor",
+            args = arrayOf("$sellersNumber")
+        ).run()
+
         val sellerAgents = (1..sellersNumber).map {
             createNewAgent(
                 agentClass = SellerAgent::class,
