@@ -120,13 +120,7 @@ class SellerAgent : ModernAgent() {
                                 )
                             )
                         }
-//
-//                    message = ACLMessage(ACLMessage.ACCEPT_PROPOSAL).apply {
-//                        addReceiver(bestOffer!!.sender)
-//                        content = toJSON(BuyRequest(flightId = fromJSON<Flight>(bestOffer.content).id, seatsCount = task.amount))
-//                        conversationId = ticketConversationId
-//                        replyWith = messageID
-//                    }
+
                         messageTemplate = MessageTemplate.MatchConversationId(ticketConversationId)
                         myAgent.log("Send request of buying tickets to ${bestOffer!!.sender.localName}")
                         myAgent.send(message)
