@@ -62,6 +62,7 @@ class AirlineAgent : ModernAgent() {
                                     flightId = buyRequest.flightId
                                 )
                             )
+                            Stats.INSTANCE.onBuyRequest(buyRequest = buyRequest)
 
                         } else {
                             performative = ACLMessage.FAILURE
