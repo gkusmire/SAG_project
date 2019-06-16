@@ -95,7 +95,7 @@ class SellerAgent : ModernAgent() {
                     messageTemplate = MessageTemplate.MatchConversationId(ticketConversationId)
 
                     state = State.RESPONSE_OFFER_RECEIVE
-                    myAgent.log("sending offer request (from=${task.from}, to=${task.to})")
+//                    myAgent.log("sending offer request (from=${task.from}, to=${task.to})")
                 }
                 // odbiera zapytania ofertowe
                 State.RESPONSE_OFFER_RECEIVE -> {
@@ -103,19 +103,19 @@ class SellerAgent : ModernAgent() {
                         val msg = agent.receive(messageTemplate)
                         msg?.let {
                             receivedMessages.add(msg)
-                            myAgent.log("receive offer response from ${msg.sender.localName} (${msg.content})")
+//                            myAgent.log("receive offer response from ${msg.sender.localName} (${msg.content})")
 
                             if (receivedMessages.size == numberOfAirlinesAgents) {
                                 // wszyscy agenci odpowiedzieli
                                 receivedMessages
-                                    .filter { it.performative == ACLMessage.PROPOSE }
+                                    .removeIf { it.performative == ACLMessage.REFUSE }
                                 state = State.REQUEST_BUY_TO_SEND
                             }
                         }
                 }
                 State.REQUEST_BUY_TO_SEND -> {
                     if (receivedMessages.size == 0) {
-                        myAgent.log("${myAgent.localName}: No tickets to buy for param (from=${task.from}, to=$task.to)")
+//                        myAgent.log("${myAgent.localName}: No tickets to buy for param (from=${task.from}, to=$task.to)")
                         state = State.FINISHED
                     } else {
                         val bestOffer = receivedMessages.minBy { fromJSON<Flight>(it.content).price }

@@ -2,10 +2,12 @@ package pl.sag
 
 import com.google.gson.GsonBuilder
 import java.io.File
+import java.io.FileWriter
 import java.nio.file.Files
 
 val gson = GsonBuilder()
     .setDateFormat("yyyy-MM-dd HH:mm")
+    .setPrettyPrinting()
     .create()
 
 inline fun <reified T> parseJsonFile(filename: String): T {
@@ -15,6 +17,12 @@ inline fun <reified T> parseJsonFile(filename: String): T {
 
         gson.fromJson(json, T::class.java)
     }
+}
+
+inline fun <reified T> saveToJsonFile(filename: String, obj: T) {
+    val json = gson.toJson(obj)
+    val file = File(filename)
+    file.writeText(json)
 }
 
 inline fun <reified T> fromJSON(json: String): T =

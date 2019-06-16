@@ -1,0 +1,1 @@
+{2=TicketsStats(wantedToBuy=1, actuallyBought=1, buyRefused=0)}

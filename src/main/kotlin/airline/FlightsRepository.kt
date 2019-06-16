@@ -9,7 +9,8 @@ class FlightsRepository {
     fun find(from: String, to: String, fromDate: Date, toDate: Date): Flight? {
         return flights.firstOrNull {
             it.from == from && it.to == to &&
-                    ((it.date == fromDate || it.date.after(fromDate)) && (it.date == toDate) || it.date.before(toDate))
+                    ((it.date == fromDate || it.date.after(fromDate)) && ((it.date == toDate) || it.date.before(toDate)))
+                    && it.seatsLeft > 0
         }
     }
 

@@ -4,17 +4,17 @@
       "id": 3,
       "from": "Warsaw",
       "to": "New York",
-      "date": "2019-07-03 20:50",
-      "seatsLeft": 1,
+      "date": "2019-06-03 00:00",
+      "seatsLeft": 200,
       "price": 50.0
     },
     {
       "id": 4,
-      "from": "Warsaw",
+      "from": "Prague",
       "to": "Budapest",
-      "date": "2019-07-03 20:50",
-      "seatsLeft": 10,
-      "price": 20.0
+      "date": "2019-06-03 00:00",
+      "seatsLeft": 100,
+      "price": 150.0
     }
   ]
 }

@@ -7,11 +7,17 @@ import jade.core.Profile
 import jade.core.ProfileImpl
 import jade.core.Runtime
 import pl.sag.airline.AirlineAgent
-import pl.sag.models.TestSetup
+import pl.sag.models.*
 import pl.sag.seller.SellerAgent
 import pl.sag.seller.SellersSupervisorAgent
+import java.util.*
 
-fun main() {
+fun main(args: Array<String>) {
+//    genTest(args[0])
+    simulation()
+}
+
+fun simulation() {
     val myRuntime = Runtime.instance()
 
     val myProfile = ProfileImpl()
@@ -19,7 +25,7 @@ fun main() {
 
     val mainContainer = myRuntime.createMainContainer(myProfile)
 
-    val testCaseDir = "test_case_1"
+    val testCaseDir = "test_case_3"
     val testSetup = parseJsonFile<TestSetup>("$testCaseDir/test_setup.json")
 
     val airlinesNumber = testSetup.airlines
@@ -29,7 +35,7 @@ fun main() {
         addRmaAgent()
 
         println("Creating $airlinesNumber AirlineAgent(s)")
-        val airlineAgents = (1..airlinesNumber).map {
+        (1..airlinesNumber).map {
             createNewAgent(
                 agentClass = AirlineAgent::class,
                 nickname = "airline#$it",
@@ -47,7 +53,7 @@ fun main() {
             args = arrayOf("$sellersNumber")
         ).run()
 
-        val sellerAgents = (1..sellersNumber).map {
+        (1..sellersNumber).map {
             createNewAgent(
                 agentClass = SellerAgent::class,
                 nickname = "seller#$it",
@@ -59,4 +65,35 @@ fun main() {
 
         println("Starting agents...")
     }
+}
+
+fun genTest(dirPath: String) {
+    // airline
+    val date1 = Calendar.getInstance()
+    date1.set(2019, 6, 3)
+
+    for (i in 1..1000) {
+        val airlineSetup = AirlineSetup(
+            listOf(
+                Flight(i * 2 - 1, "Warsaw", "New York", date1.time, 1, 50.0f),
+                Flight(i * 2, "Warsaw", "Budapest", date1.time, 10, 20.0f)
+
+            )
+        )
+        saveToJsonFile("$dirPath/airline_$i.json", airlineSetup)
+    }
+    // seller
+    val sellerTasks = (1..1000).map {
+        val dateFrom = Calendar.getInstance().apply {
+            set(2019, 6, 2)
+        }
+        val dateTo = Calendar.getInstance().apply {
+            set(2019, 6, 5)
+        }
+
+            SellerTask(100.0f, "Warsaw", "New York", dateFrom.time, dateTo.time, 1)
+    }
+    val sellerSetup = SellerSetup(sellerTasks)
+    saveToJsonFile("$dirPath/seller_1.json", sellerSetup)
+
 }

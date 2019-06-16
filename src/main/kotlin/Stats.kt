@@ -39,9 +39,9 @@ class Stats private constructor() {
     fun onBuyRequest(buyRequest: BuyRequest) {
         ticketsStats[buyRequest.flightId] = ticketsStats[buyRequest.flightId].let {
             return@let if (it == null) {
-                TicketsStats(wantedToBuy = 1, actuallyBought = 0, buyRefused = 0)
+                TicketsStats(requestedToBuy = 1, actuallyBought = 0, buyRefused = 0)
             } else {
-                it.copy(wantedToBuy = it.wantedToBuy + 1)
+                it.copy(requestedToBuy = it.requestedToBuy + 1)
             }
         }
     }
@@ -49,7 +49,7 @@ class Stats private constructor() {
     fun onBuyResponseSuccess(buySuccess: BuyResponseSuccess) {
         ticketsStats[buySuccess.flightId] = ticketsStats[buySuccess.flightId].let {
             return@let if (it == null) {
-                TicketsStats(wantedToBuy = 0, actuallyBought = 1, buyRefused = 0)
+                TicketsStats(requestedToBuy = 0, actuallyBought = 1, buyRefused = 0)
             } else {
                 it.copy(actuallyBought = it.actuallyBought + 1)
             }
@@ -59,7 +59,7 @@ class Stats private constructor() {
     fun onBuyResponseFailure(buyRefuse: BuyResponseRefuse) {
         ticketsStats[buyRefuse.flightId] = ticketsStats[buyRefuse.flightId].let {
             return@let if (it == null) {
-                TicketsStats(wantedToBuy = 0, actuallyBought = 0, buyRefused = 1)
+                TicketsStats(requestedToBuy = 0, actuallyBought = 0, buyRefused = 1)
             } else {
                 it.copy(buyRefused = it.buyRefused + 1)
             }
@@ -79,7 +79,7 @@ data class StatsState(
 )
 
 data class TicketsStats(
-    val wantedToBuy: Int,
+    val requestedToBuy: Int,
     val actuallyBought: Int,
     val buyRefused: Int
 )
