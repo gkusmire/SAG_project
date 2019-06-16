@@ -6,6 +6,7 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription
 import jade.domain.FIPAAgentManagement.ServiceDescription
 import jade.lang.acl.ACLMessage
 import jade.lang.acl.MessageTemplate
+import pl.sag.Stats
 import pl.sag.fromJSON
 import pl.sag.models.*
 import pl.sag.parseJsonFile
@@ -32,6 +33,8 @@ class AirlineAgent : ModernAgent() {
     private val flightsRepository = FlightsRepository()
 
     override fun onCreate(args: Array<String>) {
+        Stats.INSTANCE.registerAirline(this)
+
         // Wczytywanie pliku wejsciowego
         parseJsonFile<AirlineSetup>(args[0]).apply {
             flightsRepository.addAll(flights)
@@ -40,32 +43,46 @@ class AirlineAgent : ModernAgent() {
         // Rejestracja usług agenta u agenta DF
         DFService.register(this, getDFAgentDescription())
 
-        // Drugi typ requestu - żądanie rezerwacji biletu
+        // Drugi typ requestu - żądanie kupna biletu
         cyclic {
             receive(MessageTemplate.MatchPerformative(ACLMessage.ACCEPT_PROPOSAL))?.let {
                 val buyRequest = fromJSON<BuyRequest>(it.content)
                 log("Buy request: ${it.sender.localName}, content = $buyRequest")
 
-                val ticketsPrice = flightsRepository.reserveTickets(buyRequest.flightId, buyRequest.seatsCount)
+                val flight = flightsRepository.findById(buyRequest.flightId)
 
                 val reply = it.createReply().apply {
-                    if (ticketsPrice != 0) {    //tickets reserved
-                        performative = ACLMessage.INFORM
+                    if (flight != null) {
+                        if (flight.seatsLeft >= buyRequest.seatsCount) {
+                            flightsRepository.buyTickets(buyRequest.flightId, buyRequest.seatsCount)
+
+                            performative = ACLMessage.AGREE
+                            content = toJSON(
+                                BuyResponseSuccess(
+                                    flightId = buyRequest.flightId
+                                )
+                            )
+
+                        } else {
+                            performative = ACLMessage.FAILURE
+                            content = toJSON(
+                                BuyResponseRefuse(
+                                    flightId = buyRequest.flightId,
+                                    reason = RefuseReason.TOO_FEW_SEATS
+                                )
+                            )
+                        }
+                    } else {
+                        performative = ACLMessage.FAILURE
                         content = toJSON(
-                            BuyResponse(
-                                flightId = buyRequest.flightId, price = ticketsPrice,
-                                seatsLeft = flightsRepository.getSetsLeft(buyRequest.flightId)
+                            BuyResponseRefuse(
+                                flightId = buyRequest.flightId,
+                                reason = RefuseReason.NO_SUCH_FLIGHT
                             )
                         )
-
-                        log("send propose to: ${it.sender.localName}")
-                    } else {
-                        performative = ACLMessage.REFUSE
-                        content = toJSON(OfferRefuseResponse(RefuseReason.NO_FLIGHT_FOUND))
-
-                        log("send buy ticket refuse to: ${it.sender.localName}")
                     }
                 }
+                log("Send ${reply.content} to ${it.sender.localName}")
                 send(reply)
             }
 
@@ -87,8 +104,6 @@ class AirlineAgent : ModernAgent() {
                         log("send propose to: ${it.sender.localName}")
                     } else {
                         performative = ACLMessage.REFUSE
-                        content = toJSON(OfferRefuseResponse(RefuseReason.NO_FLIGHT_FOUND))
-
                         log("send refuse to: ${it.sender.localName}")
                     }
                 }

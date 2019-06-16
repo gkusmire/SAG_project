@@ -10,12 +10,6 @@ import pl.sag.airline.AirlineAgent
 import pl.sag.models.TestSetup
 import pl.sag.seller.SellerAgent
 
-class Stats {
-    companion object {
-        val INSTANCE by lazy { Stats() }
-    }
-}
-
 fun main() {
     val myRuntime = Runtime.instance()
 
