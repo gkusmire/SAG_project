@@ -135,12 +135,10 @@ class SellerAgent : ModernAgent() {
                         if (it.performative == ACLMessage.AGREE) {
                             myAgent.log("Accept of buying ticket from ${msg.sender.localName} (from=${task.from}, to=${task.to})")
                             State.FINISHED
-                            Stats.INSTANCE.onBuyResponseSuccess(buySuccess = fromJSON<BuyResponseSuccess>(it.content))
                         } else {
                             // wybieramy następną najlepszą ofertę
                             myAgent.log("Airline ${msg.sender.localName} refuse offert of buying tickets")
                             State.REQUEST_BUY_TO_SEND
-                            Stats.INSTANCE.onBuyResponseFailure(buyRefuse = fromJSON<BuyResponseRefuse>(it.content))
                         }
                     }
                 }
