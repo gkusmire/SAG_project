@@ -48,6 +48,7 @@ class SellerAgent : ModernAgent() {
         private var startTime = System.currentTimeMillis()
         private val timeout = 5000
         private val receivedMessages = mutableListOf<ACLMessage>()
+        private var numberOfAirlinesAgents: Int = 0
 
         private fun Agent.searchAirlineAgents(): Single<List<DFAgentDescription>> {
             val searchedServiceDescription = ServiceDescription().apply {
@@ -66,6 +67,7 @@ class SellerAgent : ModernAgent() {
                 // rozsyła zapytanie ofertowe do linii lotniczych
                 State.REQUEST_OFFER_TO_SEND -> {
                     myAgent.searchAirlineAgents().subscribeBy {
+                        numberOfAirlinesAgents = it.size
                         message.apply {
                             it.forEach { addReceiver(it.name)}
                             content = toJSON(OfferRequest(from = task.from, to = task.to))
@@ -88,7 +90,7 @@ class SellerAgent : ModernAgent() {
                             receivedMessages.add(msg)
                             myAgent.log("receive offer response from ${msg.sender.localName} (${msg.content})")
 
-                            if (receivedMessages.size == 1) {    //TODO liczba agentów
+                            if (receivedMessages.size == numberOfAirlinesAgents) {
                                 // wszyscy agenci odpowiedzieli
                                 receivedMessages
                                     .filter { it.performative == ACLMessage.PROPOSE }
@@ -130,7 +132,6 @@ class SellerAgent : ModernAgent() {
                 State.RESPONSE_BUY_RECEIVE -> {
                     val msg = myAgent.receive(messageTemplate)
                     msg?.let {
-                        //if(it.performative == null) block()
                         if (it.performative == ACLMessage.AGREE) {
                             myAgent.log("Accept of buying ticket from ${msg.sender.localName} (from=${task.from}, to=${task.to})")
                             State.FINISHED
