@@ -84,21 +84,22 @@ class SellerAgent : ModernAgent() {
                     // jeśli czas nie zosał przekroczony
                     if (startTime + timeout >= System.currentTimeMillis()) {
                         val msg = agent.receive(messageTemplate)
-                        msg?.let { receivedMessages.add(msg)
-                            myAgent.log("receive offer response from ${msg.sender.localName} (${msg.content})") }
+                        msg?.let {
+                            receivedMessages.add(msg)
+                            myAgent.log("receive offer response from ${msg.sender.localName} (${msg.content})")
 
-                        if(receivedMessages.size == 1) {    //TODO liczba agentów
-                            // wszyscy agenci odpowiedzieli
-                            state = State.REQUEST_BUY_TO_SEND
-                            receivedMessages
-                                .filter { it.performative == ACLMessage.PROPOSE }
-
+                            if (receivedMessages.size == 1) {    //TODO liczba agentów
+                                // wszyscy agenci odpowiedzieli
+                                receivedMessages
+                                    .filter { it.performative == ACLMessage.PROPOSE }
+                                state = State.REQUEST_BUY_TO_SEND
+                            }
                         }
                     } else {
                         // Timeout
-                        state = State.REQUEST_BUY_TO_SEND
                         receivedMessages
                             .filter { it.performative == ACLMessage.PROPOSE }
+                        state = State.REQUEST_BUY_TO_SEND
                     }
                 }
                 State.REQUEST_BUY_TO_SEND -> {
@@ -106,25 +107,37 @@ class SellerAgent : ModernAgent() {
                         myAgent.log("${myAgent.localName}: No tickets to buy for param (from=${task.from}, to=$task.to)")
                         state = State.FINISHED
                     }
-                    val bestOffer = receivedMessages.minBy { fromJSON<Flight>(it.content).price }
-                    receivedMessages.remove(bestOffer)
+                    else {
+                        val bestOffer = receivedMessages.minBy { fromJSON<Flight>(it.content).price }
+                        receivedMessages.remove(bestOffer)
 
-                    message = ACLMessage(ACLMessage.ACCEPT_PROPOSAL).apply {
-                        addReceiver(bestOffer!!.sender)
-                        content = toJSON(BuyRequest(flightId = fromJSON<Flight>(bestOffer.content).id, seatsCount = task.amount))
-                        conversationId = ticketConversationId
-                        replyWith = messageID
+                        message = bestOffer!!.createReply().apply {
+                            performative = ACLMessage.ACCEPT_PROPOSAL
+                            content = toJSON(
+                                BuyRequest(
+                                    flightId = fromJSON<Flight>(bestOffer.content).id,
+                                    seatsCount = task.amount
+                                )
+                            )
+                        }
+//
+//                    message = ACLMessage(ACLMessage.ACCEPT_PROPOSAL).apply {
+//                        addReceiver(bestOffer!!.sender)
+//                        content = toJSON(BuyRequest(flightId = fromJSON<Flight>(bestOffer.content).id, seatsCount = task.amount))
+//                        conversationId = ticketConversationId
+//                        replyWith = messageID
+//                    }
+                        messageTemplate = MessageTemplate.MatchConversationId(ticketConversationId)
+                        myAgent.log("Send request of buying tickets to ${bestOffer!!.sender.localName}")
+                        myAgent.send(message)
+                        state = State.RESPONSE_BUY_RECEIVE
                     }
-                    messageTemplate = MessageTemplate.MatchConversationId(ticketConversationId)
-                    myAgent.log("Send request of buying tickets to ${bestOffer!!.sender.localName}")
-                    myAgent.send(message)
-                    state = State.RESPONSE_BUY_RECEIVE
                 }
                 State.RESPONSE_BUY_RECEIVE -> {
                     val msg = myAgent.receive(messageTemplate)
                     msg?.let {
                         //if(it.performative == null) block()
-                        state = if (it.performative == ACLMessage.INFORM) {
+                        if (it.performative == ACLMessage.AGREE) {
                             myAgent.log("Accept of buying ticket from ${msg.sender.localName} (from=${task.from}, to=${task.to})")
                             State.FINISHED
                         } else {
