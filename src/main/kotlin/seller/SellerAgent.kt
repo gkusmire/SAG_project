@@ -3,6 +3,7 @@ package pl.sag.seller
 import io.reactivex.Single
 import io.reactivex.rxkotlin.subscribeBy
 import it.lamba.agents.ModernAgent
+import jade.core.AID
 import jade.core.Agent
 import jade.core.behaviours.Behaviour
 import jade.core.behaviours.SequentialBehaviour
@@ -16,6 +17,7 @@ import pl.sag.fromJSON
 import pl.sag.models.*
 import pl.sag.parseJsonFile
 import pl.sag.toJSON
+import pl.sag.utils.oneShot
 import pl.sag.utils.searchAgents
 
 class SellerAgent : ModernAgent() {
@@ -29,6 +31,13 @@ class SellerAgent : ModernAgent() {
             setup.tasks.forEach {
                 addSubBehaviour(BuyTicketsBehaviour(it))
             }
+            addSubBehaviour(oneShot {
+                val msg = ACLMessage(ACLMessage.CONFIRM).apply {
+                    content = "FINISHED"
+                    addReceiver(AID().apply { localName = "sellers-supervisor" })
+                }
+                send(msg)
+            })
         })
 
     }
